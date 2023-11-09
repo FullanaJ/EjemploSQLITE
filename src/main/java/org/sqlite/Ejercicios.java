@@ -106,8 +106,20 @@ class OperacionesCRUDPilots {
             e.printStackTrace();
         }
     }
+    public static void mostrarClasificacionConstructores(){
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" +rutaBaseDatos.toString())){
+            PreparedStatement p = connection.prepareStatement("SELECT (SELECT C.NAME FROM constructors C WHERE C.constructorid = D.constructorid ) AS EQUIPO, SUM(R.points) AS PUNTOS FROM drivers D JOIN results R ON D.driverid = R.driverid GROUP BY D.constructorid ORDER BY SUM(points) DESC");
+            ResultSet r = p.executeQuery();
+            while (r.next()){
+                System.out.println(r.getString("EQUIPO") + " " + r.getInt("PUNTOS"));
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void main(String[] args) {
-        mostrarClasificacionPilotos();
+        //mostrarClasificacionPilotos();
+        mostrarClasificacionConstructores();
     }
 }
