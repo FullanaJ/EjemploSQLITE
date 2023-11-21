@@ -157,16 +157,32 @@ class OperacionesCRUDPilots2 {
     //carrera de la temporada.
     //• get_drivers_standings(), que no recibe ningún parámetro y devuelve la clasificación final del
     //mundial.
+    public static void get_drivers_standings(){
+        try (Connection connection = DriverManager.getConnection(rutaBaseDatos, usuario, password)) {
+            PreparedStatement p = connection.prepareStatement(
+                    "SELECT (SELECT C.NAME FROM constructors C WHERE C.constructorid = D.constructorid ) AS EQUIPO, SUM(R.points) AS PUNTOS " +
+                            "FROM drivers D JOIN results R ON D.driverid = R.driverid " +
+                            "GROUP BY D.constructorid ORDER BY SUM(points) DESC");
+            ResultSet r = p.executeQuery();
+            int i = 1;
+            while (r.next()) {
+                System.out.println("Podio nº" + i + " " + r.getString("EQUIPO") + " " + r.getInt("PUNTOS"));
+                i++;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+    }
     public static void get_results_by_driver(int id){
         try (Connection connection = DriverManager.getConnection(rutaBaseDatos, usuario, password)) {
             PreparedStatement p = connection.prepareStatement(
-                    "SELECT R.postition, C.name,C.date,C.time" +
-                            "FROM  results R JOIN races C ON R.raceid = C.raceid " +
-                            "WHERE D.driverid = ?");
+                    "SELECT R.position, C.name,C.date,C.time " +
+                            "FROM results R JOIN races C ON R.raceid = C.raceid " +
+                            "WHERE R.driverid = ?");
             p.setInt(1,id);
             ResultSet r = p.executeQuery();
             while (r.next()) {
-                System.out.println(r);
+                System.out.println(r.getString("position") +" "+r.getString("name")+" "+r.getString("date")+" "+r.getString("position"));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
@@ -235,5 +251,6 @@ class OperacionesCRUDPilots2 {
         e.printStackTrace();
         }
         get_results_by_driver(2);
+        get_drivers_standings();
     }
 }
