@@ -1,37 +1,12 @@
 package org.sqlite;
 
-import lombok.AllArgsConstructor;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-
 import java.nio.file.Path;
 import java.sql.*;
 import java.time.LocalDate;
 
-@NoArgsConstructor
-@AllArgsConstructor
-@Data
-class Piloto{
-    private int driverid;
-    private String code;
-    private String forename;
-    private String surname;
-    private LocalDate fechaNacimiento;
-    private String nationality;
-    private String url;
 
-    @Override
-    public String toString() {
-        return "Piloto{" +
-                "code='" + code + '\'' +
-                ", forename='" + forename + '\'' +
-                ", surname='" + surname + '\'' +
-                ", dob='" + fechaNacimiento + '\'' +
-                ", nationality='" + nationality + '\'' +
-                ", url='" + url + '\'' +
-                '}';
-    }
-}
+
+
 
 class OperacionesCRUDPilots {
 
@@ -48,6 +23,7 @@ class OperacionesCRUDPilots {
             consulta.setString(4, piloto.getFechaNacimiento().toString());
             consulta.setString(5, piloto.getNationality());
             consulta.setString(6, piloto.getUrl());
+
             return consulta.executeQuery().getInt("driverid");
         } catch (SQLException throwables) {
             throwables.printStackTrace();
@@ -55,19 +31,20 @@ class OperacionesCRUDPilots {
         }
     }
     public static Piloto LeerPiloto(int id){
-
+        Piloto piloto = null;
         try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" +rutaBaseDatos.toString())){
-            PreparedStatement p =connection.prepareStatement("SELECT * FROM drivers WHERE driverid = ?");
+            PreparedStatement p =connection.prepareStatement("SELECT driverid,code,forename,surname,dob,nationality, FROM drivers WHERE driverid = ?");
             p.setInt(1,id);
             ResultSet resultSet = p.executeQuery();
             if(resultSet.next()){
-                return new Piloto(resultSet.getInt("driverid"),resultSet.getString("code"),resultSet.getString("forename"),resultSet.getString("surname"),LocalDate.parse(resultSet.getString("dob")),resultSet.getString("nationality"),resultSet.getString("url"));
+                piloto = new Piloto(resultSet.getInt("driverid"),resultSet.getString("code"),resultSet.getString("forename"),resultSet.getString("surname"),LocalDate.parse(resultSet.getString("dob")),resultSet.getString("nationality"),resultSet.getString("url"),new Constructors());
+
             }
         } catch (SQLException e) {
             e.printStackTrace();
             return null;
         }
-    return null;
+        return null;
     }
 
     public boolean ActualizaPiloto(Piloto piloto){
@@ -107,8 +84,11 @@ class OperacionesCRUDPilots {
         }
     }
     public static void mostrarClasificacionConstructores(){
-        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" +rutaBaseDatos.toString())){
-            PreparedStatement p = connection.prepareStatement("SELECT (SELECT C.NAME FROM constructors C WHERE C.constructorid = D.constructorid ) AS EQUIPO, SUM(R.points) AS PUNTOS FROM drivers D JOIN results R ON D.driverid = R.driverid GROUP BY D.constructorid ORDER BY SUM(points) DESC");
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" +rutaBaseDatos.toString());
+             PreparedStatement p = connection.prepareStatement(
+                     "SELECT (SELECT C.NAME FROM constructors C WHERE C.constructorid = D.constructorid ) AS EQUIPO, SUM(R.points) AS PUNTOS " +
+                             "FROM drivers D JOIN results R ON D.driverid = R.driverid " +
+                             "GROUP BY D.constructorid ORDER BY SUM(points) DESC");){
             ResultSet r = p.executeQuery();
             while (r.next()){
                 System.out.println(r.getString("EQUIPO") + " " + r.getInt("PUNTOS"));
@@ -117,9 +97,29 @@ class OperacionesCRUDPilots {
             e.printStackTrace();
         }
     }
+    public static void mostrarClasificacionConstructoresPodio(){
+        try (Connection connection = DriverManager.getConnection("jdbc:sqlite:" +rutaBaseDatos.toString());
+             PreparedStatement p = connection.prepareStatement(
+                     "SELECT (SELECT C.NAME FROM constructors C WHERE C.constructorid = D.constructorid ) AS EQUIPO, SUM(R.points) AS PUNTOS " +
+                             "FROM drivers D JOIN results R ON D.driverid = R.driverid " +
+                             "GROUP BY D.constructorid ORDER BY SUM(points) DESC")){
+            ResultSet r = p.executeQuery();
+            int i = 1;
+            while (r.next() && i <= 3){
+                System.out.println("Podio nº"+i+" "+r.getString("EQUIPO") + " " + r.getInt("PUNTOS"));
+                i++;
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+    }
+    public void existeEquipo(String constructorid,String nationality){
+
+    }
 
     public static void main(String[] args) {
         //mostrarClasificacionPilotos();
-        mostrarClasificacionConstructores();
+        //mostrarClasificacionConstructores();
+        mostrarClasificacionConstructoresPodio();
     }
 }
