@@ -153,11 +153,12 @@ class OperacionesCRUDPilots2 {
             throw new RuntimeException(e);
         }
     }
+
     //get_results_by_driver(cod), que recibe un código de piloto y devuelve sus resultados para cada
     //carrera de la temporada.
     //• get_drivers_standings(), que no recibe ningún parámetro y devuelve la clasificación final del
     //mundial.
-    public static void get_drivers_standings(){
+    public static void get_drivers_standings() {
         try (Connection connection = DriverManager.getConnection(rutaBaseDatos, usuario, password)) {
             PreparedStatement p = connection.prepareStatement(
                     "SELECT (SELECT C.NAME FROM constructors C WHERE C.constructorid = D.constructorid ) AS EQUIPO, SUM(R.points) AS PUNTOS " +
@@ -173,33 +174,34 @@ class OperacionesCRUDPilots2 {
             throw new RuntimeException(e);
         }
     }
-    public static void get_results_by_driver(int id){
+
+    public static void get_results_by_driver(int id) {
         try (Connection connection = DriverManager.getConnection(rutaBaseDatos, usuario, password)) {
             PreparedStatement p = connection.prepareStatement(
                     "SELECT R.position, C.name,C.date,C.time " +
                             "FROM results R JOIN races C ON R.raceid = C.raceid " +
                             "WHERE R.driverid = ?");
-            p.setInt(1,id);
+            p.setInt(1, id);
             ResultSet r = p.executeQuery();
             while (r.next()) {
-                System.out.println(r.getString("position") +" "+r.getString("name")+" "+r.getString("date")+" "+r.getString("position"));
+                System.out.println(r.getString("position") + " " + r.getString("name") + " " + r.getString("date") + " " + r.getString("position"));
             }
         } catch (SQLException e) {
             throw new RuntimeException(e);
         }
     }
-    public static void main (String[]args){
 
-        Constructors c1 = new Constructors(1,"seat","seat","italy","url");
+    public static void main(String[] args) {
 
-        Piloto p1 = new Piloto("JOR","Carlos","Sainz",LocalDate.now(),"","",c1);
-        Piloto p2 = new Piloto("PEP","Manuel","Alomá",LocalDate.now(),"","",c1);
+        Constructors c1 = new Constructors("seat", "seat", "italy", "url");
 
-        try(Connection connection = DriverManager.getConnection(rutaBaseDatos, usuario, password)){
-            connection.setAutoCommit(false);
+        Piloto p1 = new Piloto("JOR", "Carlos", "Sainz", LocalDate.now(), "", "", c1);
+        Piloto p2 = new Piloto("PEP", "Manuel", "Alomá", LocalDate.now(), "", "", c1);
+        int equipo = 0;
+        try (Connection connection = DriverManager.getConnection(rutaBaseDatos, usuario, password)) {
             try {
-                String sql = "INSERT INTO constructors (constructorref,name,nationality,url) VALUES (?,?,?,?) " +
-                        "ON CONFLICT (constructorref) DO NOTHING RETURNING constructorref;";
+                connection.setAutoCommit(false);
+                String sql = "INSERT INTO constructors (constructorref,name,nationality,url) VALUES (?,?,?,?) ON conflict DO NOTHING;";
                 PreparedStatement p = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
                 p.setString(1, c1.getConstructorRef());
                 p.setString(2, c1.getName());
@@ -207,50 +209,37 @@ class OperacionesCRUDPilots2 {
                 p.setString(4, c1.getUrl());
                 p.executeUpdate();
                 ResultSet r;
-                if ((r = p.getGeneratedKeys()).next()) {
-                    sql = "INSERT INTO drivers(code,forename,surname,dob,nationality,constructorid,url) VALUES (?,?,?,?,?,?,?)";
-                    p = connection.prepareStatement(sql);
-                    p.setString(1, p1.getCode());
-                    p.setString(2, p1.getForename());
-                    p.setString(3, p1.getSurname());
-                    p.setString(4, p1.getFechaNacimiento().toString());
-                    p.setString(5, p1.getNationality());
-                    p.setString(6, r.getString(1));
-                    p.setString(7, p1.getUrl());
-                }
+                r = p.getGeneratedKeys();
+                r.next();
+                equipo = r.getInt(1);
+                sql = "INSERT INTO drivers(code,forename,surname,dob,nationality,constructorid,url) VALUES (?,?,?,?,?,?,?)";
+                p = connection.prepareStatement(sql);
+                p.setString(1, p1.getCode());
+                p.setString(2, p1.getForename());
+                p.setString(3, p1.getSurname());
+                p.setDate(4, Date.valueOf(p1.getFechaNacimiento().toString()));
+                p.setString(5, p1.getNationality());
+                p.setInt(6, equipo);
+                p.setString(7, p1.getUrl());
+                p.executeUpdate();
+                sql = "INSERT INTO drivers(code,forename,surname,dob,nationality,constructorid,url) VALUES (?,?,?,?,?,?,?)";
+                p = connection.prepareStatement(sql);
+                p.setString(1, p2.getCode());
+                p.setString(2, p2.getForename());
+                p.setString(3, p2.getSurname());
+                p.setDate(4, Date.valueOf(p2.getFechaNacimiento().toString()));
+                p.setString(5, p2.getNationality());
+                p.setInt(6, equipo);
+                p.setString(7, p2.getUrl());
+                p.executeUpdate();
+                connection.commit();
             } catch (SQLException e) {
                 e.printStackTrace();
                 connection.rollback();
             }
-            try {
-                String sql = "INSERT INTO constructors (constructorRef,name,nationality,url) VALUES (?,?,?,?) " +
-                        "ON CONFLICT (constructorref) DO NOTHING RETURNING constructorref;";
-                PreparedStatement p = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
-                p.setString(1, c1.getConstructorRef());
-                p.setString(2, c1.getName());
-                p.setString(3, c1.getNationality());
-                p.setString(4, c1.getUrl());
-                int r = p.executeUpdate();
-                if (p.getGeneratedKeys().next()) {
-                    sql = "INSERT INTO drivers(code,forename,surname,dob,nationality,constructorid,url) VALUES (?,?,?,?,?,?,?)";
-                    p = connection.prepareStatement(sql);
-                    p.setString(1, p2.getCode());
-                    p.setString(2, p2.getForename());
-                    p.setString(3, p2.getSurname());
-                    p.setString(4, p2.getFechaNacimiento().toString());
-                    p.setString(5, p2.getNationality());
-                    p.setString(6, p.getGeneratedKeys().getString(1));
-                    p.setString(7, p2.getUrl());
-                }
-            } catch (SQLException e) {
-                e.printStackTrace();
-                connection.rollback();
-            }
-            connection.commit();
         } catch (SQLException e) {
-        e.printStackTrace();
+            e.printStackTrace();
         }
-        get_results_by_driver(2);
-        get_drivers_standings();
+        mostrarClasificacionPilotos();
     }
 }

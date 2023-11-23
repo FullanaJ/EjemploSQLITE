@@ -16,7 +16,12 @@ public class Constructors{
     private String nationality;
     private String url;
 
-
+    public Constructors(String constructorRef, String name, String nationality, String url) {
+        this.constructorRef = constructorRef;
+        this.name = name;
+        this.nationality = nationality;
+        this.url = url;
+    }
 
     @Override
     public String toString() {
